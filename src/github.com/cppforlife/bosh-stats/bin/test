@@ -1,0 +1,25 @@
+#!/bin/bash
+
+result=0
+
+bin=$(cd `dirname $0`; pwd)
+
+echo -e "\n Formatting packages..."
+go fmt github.com/cppforlife/bosh-stats/...
+let "result+=$?"
+
+echo -e "\n Testing packages..."
+ginkgo -r $bin/..
+let "result+=$?"
+
+echo -e "\n Running build script to confirm api server compiles..."
+go build -o $bin/stats $bin/../main/*.go
+let "result+=$?"
+
+if [ $result -eq 0 ]; then
+  echo -e "\nSUITE SUCCESS"
+else
+  echo -e "\nSUITE FAILURE"
+fi
+
+exit $result

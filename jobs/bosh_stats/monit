@@ -1,0 +1,5 @@
+check process bosh_stats
+  with pidfile /var/vcap/sys/run/bosh_stats/pid
+  start program "/var/vcap/jobs/bosh_stats/bin/ctl start"
+  stop program "/var/vcap/jobs/bosh_stats/bin/ctl stop"
+  group vcap

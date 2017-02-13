@@ -1,0 +1,35 @@
+---
+name: bosh_stats
+
+templates:
+  ctl.erb: bin/ctl
+  config.json.erb: config/config.json
+
+packages:
+- bosh_stats
+
+properties:
+  director.host:
+    description: "Director host"
+    example: "192.168.50.4"
+  director.port:
+    description: "Director port"
+    default: 25555
+  director.ca_cert:
+    description: "CA certificate to verify Director certificate (uses system CA certificates by default)"
+    default: ""
+  director.client:
+    description: "Director client (username in case of basic auth)"
+  director.client_secret:
+    description: "Director client secret (password in case of basic auth)"
+
+  debug:
+    description: "Show debug logs"
+    default: true
+
+  env.http_proxy:
+    description: Http proxy to connect to cloud API's
+  env.https_proxy:
+    description: Https proxy to connect to cloud API's
+  env.no_proxy:
+    description: No proxy environment variable

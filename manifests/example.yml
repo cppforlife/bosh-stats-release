@@ -1,0 +1,35 @@
+---
+name: bosh-stats
+
+releases:
+- name: bosh-stats
+  version: latest
+
+stemcells:
+- alias: default
+  os: ubuntu-trusty
+  version: latest
+
+instance_groups:
+- name: bosh_stats
+  instances: 1
+  azs: [z1]
+  jobs:
+  - name: bosh_stats
+    release: bosh-stats
+    properties:
+      director:
+        host: ((director_ip))
+        ca_cert: ((director_ssl_ca))
+        client: ((director_client))
+        client_secret: ((director_client_secret))
+  vm_type: default
+  stemcell: default
+  networks:
+  - name: default
+
+update:
+  canaries: 1
+  max_in_flight: 1
+  canary_watch_time: 5000-20000
+  update_watch_time: 5000-20000
