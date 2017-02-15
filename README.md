@@ -27,6 +27,7 @@ Collects different BOSH environment statistics and forwards it to some destinati
 
 ## Todo
 
+- datadog integration
 - average time for CPI actions
   - `cpi.call` (cpi, action, object_type, duration_sec)
 - deployment times
@@ -35,3 +36,7 @@ Collects different BOSH environment statistics and forwards it to some destinati
 - net configuration
 - is CPI config used
 - is runtime config used
+- opt-in to metrics
+- send all stats to stats.bosh.io (configurable)
+  - for now forward to some http endpoint
+
