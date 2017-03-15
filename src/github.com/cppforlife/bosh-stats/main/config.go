@@ -7,10 +7,12 @@ import (
 	boshsys "github.com/cloudfoundry/bosh-utils/system"
 
 	"github.com/cppforlife/bosh-stats/director"
+	"github.com/cppforlife/bosh-stats/stats/reporter"
 )
 
 type Config struct {
 	Director director.Config
+	Datadog reporter.DatadogConfig
 }
 
 func NewConfigFromPath(path string, fs boshsys.FileSystem) (Config, error) {

@@ -45,11 +45,18 @@ func main() {
 
 	eventsFactory := stats.NewEventsFactory("/tmp/events", fs)
 	src := stats.NewDirector(dir, eventsFactory, logger)
-	reporter := reporter.NewLogger(logger)
-	worker := stats.NewWorker(src, reporter, logger)
 
+	loggerReporter := reporter.NewLogger(logger)
+	worker := stats.NewWorker(src, loggerReporter, logger)
 	err = worker.Send()
 	ensureNoErr(logger, "Sending stats", err)
+
+	if config.Datadog.AppKey != "" {
+		datadogReporter := reporter.NewDatadog(config.Datadog, logger)
+		worker := stats.NewWorker(src, datadogReporter, logger)
+		err = worker.Send()
+		ensureNoErr(logger, "Sending stats to Datadog", err)
+	}
 }
 
 func basicDeps(debug bool) (boshlog.Logger, boshsys.FileSystem, boshuuid.Generator) {

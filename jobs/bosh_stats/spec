@@ -33,3 +33,10 @@ properties:
     description: Https proxy to connect to cloud API's
   env.no_proxy:
     description: No proxy environment variable
+
+  datadog.app_key:
+    description: "Datadog application key used for incident reporting"
+    default: ""
+  datadog.api_key:
+    description: "Datadog API key"
+    default: ""

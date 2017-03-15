@@ -1,6 +1,8 @@
 package reporter
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
@@ -30,25 +32,28 @@ func NewDatadog(config DatadogConfig, logger boshlog.Logger) Datadog {
 }
 
 func (r Datadog) Report(stats []Stat) error {
-	event := &datadog.Event{
-		Title: "",
-		Text:  "",
-		Time:  int(time.Now().Unix()),
+	metrics := []datadog.Metric{}
+	for _, stat := range stats {
+		tags := []string{}
+		for key, value := range stat.Tags() {
+			tags = append(tags, fmt.Sprintf("%s:%s", key, value))
+		}
+		value, err := strconv.Atoi(stat.Value())
+		if err != nil {
+			r.logger.Error(r.logTag, fmt.Sprintf("Could not convert value to integer: %v", err.Error()))
+		}
 
-		Priority:  "normal",
-		AlertType: "info",
-
-		Host:        "",
-		Aggregation: "",
-		SourceType:  "",
-
-		Tags:     nil,
-		Resource: "",
+		metric := datadog.Metric{
+			Metric: stat.Name(),
+			Points: []datadog.DataPoint{{float64(time.Now().Unix()), float64(value)}},
+			Type:   "info",
+			Host:   "director",
+			Tags:   tags,
+		}
+		metrics = append(metrics, metric)
 	}
 
-	_, err := r.client.PostEvent(event)
-
-	return err
+	return r.client.PostMetrics(metrics)
 }
 
 func (c DatadogConfig) Required() bool { return len(c.AppKey) > 0 }
