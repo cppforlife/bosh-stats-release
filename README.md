@@ -25,9 +25,13 @@ Collects different BOSH environment statistics and forwards it to some destinati
 - `director.auth.type`
 - `director.cpi`
 
+## Done
+- basic datadog integration
+
 ## Todo
 
-- datadog integration
+- datadog integration v0.2
+  - what to do for values that cannot be converted to integer/float?
 - average time for CPI actions
   - `cpi.call` (cpi, action, object_type, duration_sec)
 - deployment times
