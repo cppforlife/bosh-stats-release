@@ -3,7 +3,8 @@ name: bosh-stats
 
 releases:
 - name: bosh-stats
-  version: latest
+  url: file://..
+  version: create
 
 stemcells:
 - alias: default

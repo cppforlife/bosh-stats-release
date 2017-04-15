@@ -2,6 +2,12 @@
 
 Collects different BOSH environment statistics and forwards it to some destination.
 
+Available destinations:
+
+- local file
+  - `bosh -d bosh-stats logs --num=100 -f|grep stats.reporter.Logger`
+- DataDog
+
 ## Metrics
 
 - `releases.count`
@@ -43,4 +49,3 @@ Collects different BOSH environment statistics and forwards it to some destinati
 - opt-in to metrics
 - send all stats to stats.bosh.io (configurable)
   - for now forward to some http endpoint
-
