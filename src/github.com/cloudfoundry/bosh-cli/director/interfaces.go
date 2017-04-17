@@ -24,6 +24,7 @@ type Director interface {
 	FindTasksByContextId(string) ([]Task, error)
 
 	Events(EventsFilter) ([]Event, error)
+	Event(string) (Event, error)
 
 	Deployments() ([]Deployment, error)
 	FindDeployment(string) (Deployment, error)
@@ -58,6 +59,8 @@ type Director interface {
 	CleanUp(bool) error
 	DownloadResourceUnchecked(blobstoreID string, out io.Writer) error
 }
+
+var _ Director = &DirectorImpl{}
 
 type UploadFile interface {
 	io.ReadCloser
@@ -95,6 +98,8 @@ type Deployment interface {
 
 	Releases() ([]Release, error)
 	ExportRelease(ReleaseSlug, OSVersionSlug) (ExportReleaseResult, error)
+
+	Teams() ([]string, error)
 
 	Stemcells() ([]Stemcell, error)
 	VMInfos() ([]VMInfo, error)

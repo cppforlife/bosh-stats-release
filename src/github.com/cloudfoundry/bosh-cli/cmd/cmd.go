@@ -2,17 +2,24 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/cppforlife/go-patch/patch"
 
 	cmdconf "github.com/cloudfoundry/bosh-cli/cmd/config"
+	"github.com/cloudfoundry/bosh-cli/crypto"
 	boshdir "github.com/cloudfoundry/bosh-cli/director"
 	boshtpl "github.com/cloudfoundry/bosh-cli/director/template"
 	boshrel "github.com/cloudfoundry/bosh-cli/release"
 	boshreldir "github.com/cloudfoundry/bosh-cli/releasedir"
 	boshssh "github.com/cloudfoundry/bosh-cli/ssh"
+	bistemcell "github.com/cloudfoundry/bosh-cli/stemcell"
 	boshui "github.com/cloudfoundry/bosh-cli/ui"
 	boshuit "github.com/cloudfoundry/bosh-cli/ui/task"
+
+	boshtbl "github.com/cloudfoundry/bosh-cli/ui/table"
+	boshcrypto "github.com/cloudfoundry/bosh-utils/crypto"
+	boshfu "github.com/cloudfoundry/bosh-utils/fileutil"
 )
 
 type Cmd struct {
@@ -167,6 +174,12 @@ func (c Cmd) Execute() (cmdErr error) {
 	case *DeleteStemcellOpts:
 		return NewDeleteStemcellCmd(deps.UI, c.director()).Run(*opts)
 
+	case *RepackStemcellOpts:
+		stemcellReader := bistemcell.NewReader(deps.Compressor, deps.FS)
+		stemcellExtractor := bistemcell.NewExtractor(stemcellReader, deps.FS)
+
+		return NewRepackStemcellCmd(deps.UI, deps.FS, stemcellExtractor).Run(*opts)
+
 	case *LocksOpts:
 		return NewLocksCmd(deps.UI, c.director()).Run()
 
@@ -230,6 +243,9 @@ func (c Cmd) Execute() (cmdErr error) {
 
 	case *EventsOpts:
 		return NewEventsCmd(deps.UI, c.director()).Run(*opts)
+
+	case *EventOpts:
+		return NewEventCmd(deps.UI, c.director()).Run(*opts)
 
 	case *InspectReleaseOpts:
 		return NewInspectReleaseCmd(deps.UI, c.director()).Run(*opts)
@@ -326,6 +342,18 @@ func (c Cmd) Execute() (cmdErr error) {
 		_, err := NewCreateReleaseCmd(releaseDirFactory, relProv.NewArchiveWriter(), c.deps.FS, c.deps.UI).Run(*opts)
 		return err
 
+	case *Sha2ifyReleaseOpts:
+		relProv, _ := c.releaseProviders()
+
+		return NewSha2ifyReleaseCmd(
+			relProv.NewArchiveReader(),
+			relProv.NewArchiveWriter(),
+			crypto.NewDigestCalculator(c.deps.FS, []boshcrypto.Algorithm{boshcrypto.DigestAlgorithmSHA256}),
+			boshfu.NewFileMover(c.deps.FS),
+			c.deps.FS,
+			c.deps.UI,
+		).Run(opts.Args)
+
 	case *BlobsOpts:
 		return NewBlobsCmd(c.blobsDir(opts.Directory), deps.UI).Run()
 
@@ -352,7 +380,6 @@ func (c Cmd) Execute() (cmdErr error) {
 		return fmt.Errorf("Unhandled command: %#v", c.Opts)
 	}
 }
-
 func (c Cmd) configureUI() {
 	c.deps.UI.EnableTTY(c.BoshOpts.TTYOpt)
 
@@ -367,10 +394,19 @@ func (c Cmd) configureUI() {
 	if c.BoshOpts.NonInteractiveOpt {
 		c.deps.UI.EnableNonInteractive()
 	}
+
+	if len(c.BoshOpts.ColumnOpt) > 0 {
+		headers := []boshtbl.Header{}
+		for _, columnOpt := range c.BoshOpts.ColumnOpt {
+			headers = append(headers, columnOpt.Header)
+		}
+
+		c.deps.UI.ShowColumns(headers)
+	}
 }
 
 func (c Cmd) configureFS() {
-	tmpDirPath, err := c.deps.FS.ExpandPath("~/.bosh/tmp")
+	tmpDirPath, err := c.deps.FS.ExpandPath(filepath.Join("~", ".bosh", "tmp"))
 	c.panicIfErr(err)
 
 	err = c.deps.FS.ChangeTempRoot(tmpDirPath)

@@ -7,7 +7,7 @@ import (
 
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	boshlog "github.com/cloudfoundry/bosh-utils/logger"
-	datadog "github.com/zorkian/go-datadog-api"
+	datadog "gopkg.in/zorkian/go-datadog-api.v1"
 )
 
 type DatadogConfig struct {

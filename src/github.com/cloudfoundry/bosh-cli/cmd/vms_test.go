@@ -132,13 +132,13 @@ var _ = Describe("VMsCmd", func() {
 
 						Content: "vms",
 
-						HeaderVals: []boshtbl.Value{
-							boshtbl.NewValueString("Instance"),
-							boshtbl.NewValueString("Process State"),
-							boshtbl.NewValueString("AZ"),
-							boshtbl.NewValueString("IPs"),
-							boshtbl.NewValueString("VM CID"),
-							boshtbl.NewValueString("VM Type"),
+						Header: []boshtbl.Header{
+							boshtbl.NewHeader("Instance"),
+							boshtbl.NewHeader("Process State"),
+							boshtbl.NewHeader("AZ"),
+							boshtbl.NewHeader("IPs"),
+							boshtbl.NewHeader("VM CID"),
+							boshtbl.NewHeader("VM Type"),
 						},
 
 						SortBy: []boshtbl.ColumnSort{{Column: 0, Asc: true}},
@@ -182,14 +182,14 @@ var _ = Describe("VMsCmd", func() {
 
 						Content: "vms",
 
-						HeaderVals: []boshtbl.Value{
-							boshtbl.NewValueString("Instance"),
-							boshtbl.NewValueString("Process State"),
-							boshtbl.NewValueString("AZ"),
-							boshtbl.NewValueString("IPs"),
-							boshtbl.NewValueString("VM CID"),
-							boshtbl.NewValueString("VM Type"),
-							boshtbl.NewValueString("DNS A Records"),
+						Header: []boshtbl.Header{
+							boshtbl.NewHeader("Instance"),
+							boshtbl.NewHeader("Process State"),
+							boshtbl.NewHeader("AZ"),
+							boshtbl.NewHeader("IPs"),
+							boshtbl.NewHeader("VM CID"),
+							boshtbl.NewHeader("VM Type"),
+							boshtbl.NewHeader("DNS A Records"),
 						},
 
 						SortBy: []boshtbl.ColumnSort{{Column: 0, Asc: true}},
@@ -236,24 +236,24 @@ var _ = Describe("VMsCmd", func() {
 
 						Content: "vms",
 
-						HeaderVals: []boshtbl.Value{
-							boshtbl.NewValueString("Instance"),
-							boshtbl.NewValueString("Process State"),
-							boshtbl.NewValueString("AZ"),
-							boshtbl.NewValueString("IPs"),
-							boshtbl.NewValueString("VM CID"),
-							boshtbl.NewValueString("VM Type"),
-							boshtbl.NewValueString("Uptime"),
-							boshtbl.NewValueString("Load\n(1m, 5m, 15m)"),
-							boshtbl.NewValueString("CPU\nTotal"),
-							boshtbl.NewValueString("CPU\nUser"),
-							boshtbl.NewValueString("CPU\nSys"),
-							boshtbl.NewValueString("CPU\nWait"),
-							boshtbl.NewValueString("Memory\nUsage"),
-							boshtbl.NewValueString("Swap\nUsage"),
-							boshtbl.NewValueString("System\nDisk Usage"),
-							boshtbl.NewValueString("Ephemeral\nDisk Usage"),
-							boshtbl.NewValueString("Persistent\nDisk Usage"),
+						Header: []boshtbl.Header{
+							boshtbl.NewHeader("Instance"),
+							boshtbl.NewHeader("Process State"),
+							boshtbl.NewHeader("AZ"),
+							boshtbl.NewHeader("IPs"),
+							boshtbl.NewHeader("VM CID"),
+							boshtbl.NewHeader("VM Type"),
+							boshtbl.NewHeader("Uptime"),
+							boshtbl.NewHeader("Load\n(1m, 5m, 15m)"),
+							boshtbl.NewHeader("CPU\nTotal"),
+							boshtbl.NewHeader("CPU\nUser"),
+							boshtbl.NewHeader("CPU\nSys"),
+							boshtbl.NewHeader("CPU\nWait"),
+							boshtbl.NewHeader("Memory\nUsage"),
+							boshtbl.NewHeader("Swap\nUsage"),
+							boshtbl.NewHeader("System\nDisk Usage"),
+							boshtbl.NewHeader("Ephemeral\nDisk Usage"),
+							boshtbl.NewHeader("Persistent\nDisk Usage"),
 						},
 
 						SortBy: []boshtbl.ColumnSort{{Column: 0, Asc: true}},
@@ -365,13 +365,13 @@ var _ = Describe("VMsCmd", func() {
 
 					Content: "vms",
 
-					HeaderVals: []boshtbl.Value{
-						boshtbl.NewValueString("Instance"),
-						boshtbl.NewValueString("Process State"),
-						boshtbl.NewValueString("AZ"),
-						boshtbl.NewValueString("IPs"),
-						boshtbl.NewValueString("VM CID"),
-						boshtbl.NewValueString("VM Type"),
+					Header: []boshtbl.Header{
+						boshtbl.NewHeader("Instance"),
+						boshtbl.NewHeader("Process State"),
+						boshtbl.NewHeader("AZ"),
+						boshtbl.NewHeader("IPs"),
+						boshtbl.NewHeader("VM CID"),
+						boshtbl.NewHeader("VM Type"),
 					},
 
 					SortBy: []boshtbl.ColumnSort{{Column: 0, Asc: true}},

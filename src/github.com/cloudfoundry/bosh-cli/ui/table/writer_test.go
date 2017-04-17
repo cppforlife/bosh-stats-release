@@ -12,25 +12,30 @@ import (
 
 var _ = Describe("Writer", func() {
 	var (
-		buf    *bytes.Buffer
-		writer *Writer
+		buf                  *bytes.Buffer
+		writer               *Writer
+		visibleHeaders       []Header
+		lastHeaderNotVisible []Header
 	)
 
 	BeforeEach(func() {
 		buf = bytes.NewBufferString("")
 		writer = NewWriter(buf, "empty", ".", "||")
+		visibleHeaders = []Header{{Hidden: false}, {Hidden: false}}
+		lastHeaderNotVisible = []Header{{Hidden: false}, {Hidden: false}, {Hidden: true}}
+
 	})
 
 	Describe("Write/Flush", func() {
 		It("writes single row", func() {
-			writer.Write([]Value{ValueString{"c0r0"}, ValueString{"c1r0"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r0"}, ValueString{"c1r0"}})
 			writer.Flush()
 			Expect(buf.String()).To(Equal("c0r0||c1r0||\n"))
 		})
 
 		It("writes multiple rows", func() {
-			writer.Write([]Value{ValueString{"c0r0"}, ValueString{"c1r0"}})
-			writer.Write([]Value{ValueString{"c0r1"}, ValueString{"c1r1"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r0"}, ValueString{"c1r0"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r1"}, ValueString{"c1r1"}})
 			writer.Flush()
 			Expect("\n" + buf.String()).To(Equal(`
 c0r0||c1r0||
@@ -38,10 +43,30 @@ c0r1||c1r1||
 `))
 		})
 
+		It("writes multiple rows that are not filtered out", func() {
+			writer.Write(lastHeaderNotVisible, []Value{ValueString{"c0r0"}, ValueString{"c1r0"}, ValueString{"c2r0"}})
+			writer.Write(lastHeaderNotVisible, []Value{ValueString{"c0r1"}, ValueString{"c1r1"}, ValueString{"c2r1"}})
+			writer.Flush()
+			Expect("\n" + buf.String()).To(Equal(`
+c0r0||c1r0||
+c0r1||c1r1||
+`))
+		})
+
+		It("writes every row if not given any headers", func() {
+			writer.Write(nil, []Value{ValueString{"c0r0"}, ValueString{"c1r0"}, ValueString{"c1r0"}})
+			writer.Write(nil, []Value{ValueString{"c0r1"}, ValueString{"c1r1"}, ValueString{"c2r1"}})
+			writer.Flush()
+			Expect("\n" + buf.String()).To(Equal(`
+c0r0||c1r0||c1r0||
+c0r1||c1r1||c2r1||
+`))
+		})
+
 		It("properly deals with multi-width columns", func() {
-			writer.Write([]Value{ValueString{"c0r0-extra"}, ValueString{"c1r0"}})
-			writer.Write([]Value{ValueString{"c0r1"}, ValueString{"c1r1-extra"}})
-			writer.Write([]Value{ValueString{"c0r2-extra-extra"}, ValueString{"c1r2"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r0-extra"}, ValueString{"c1r0"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r1"}, ValueString{"c1r1-extra"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r2-extra-extra"}, ValueString{"c1r2"}})
 			writer.Flush()
 			Expect("\n" + buf.String()).To(Equal(`
 c0r0-extra......||c1r0......||
@@ -51,9 +76,9 @@ c0r2-extra-extra||c1r2......||
 		})
 
 		It("properly deals with multi-width columns and multi-line values", func() {
-			writer.Write([]Value{ValueString{"c0r0-extra"}, ValueString{"c1r0"}})
-			writer.Write([]Value{ValueString{"c0r1\nnext-line"}, ValueString{"c1r1-extra"}})
-			writer.Write([]Value{ValueString{"c0r2-extra-extra"}, ValueString{"c1r2\n\nother\nanother"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r0-extra"}, ValueString{"c1r0"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r1\nnext-line"}, ValueString{"c1r1-extra"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r2-extra-extra"}, ValueString{"c1r2\n\nother\nanother"}})
 			writer.Flush()
 			Expect("\n" + buf.String()).To(Equal(`
 c0r0-extra......||c1r0......||
@@ -67,8 +92,8 @@ c0r2-extra-extra||c1r2......||
 		})
 
 		It("writes empty special value if values are empty", func() {
-			writer.Write([]Value{ValueString{""}, ValueNone{}})
-			writer.Write([]Value{ValueString{"c0r1"}, ValueString{"c1r1"}})
+			writer.Write(visibleHeaders, []Value{ValueString{""}, ValueNone{}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r1"}, ValueString{"c1r1"}})
 			writer.Flush()
 			Expect("\n" + buf.String()).To(Equal(`
 empty||empty||
@@ -91,8 +116,8 @@ c0r1.||c1r1.||
 				},
 			}
 
-			writer.Write([]Value{formattedRegVal, ValueString{"c1r0"}})
-			writer.Write([]Value{ValueString{"c0r1"}, formattedMutliVal})
+			writer.Write(visibleHeaders, []Value{formattedRegVal, ValueString{"c1r0"}})
+			writer.Write(visibleHeaders, []Value{ValueString{"c0r1"}, formattedMutliVal})
 			writer.Flush()
 
 			// Maintains original width for values -- useful for colors since they are not visible

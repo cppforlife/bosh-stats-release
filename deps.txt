@@ -1,4 +1,4 @@
-503ff3f github.com/cloudfoundry/bosh-cli/.git
-dc1926c github.com/cloudfoundry/bosh-utils/.git
-6308094 github.com/zorkian/go-datadog-api/.git
-a3f3340 gopkg.in/yaml.v2/.git
+d5180d5a github.com/cloudfoundry/bosh-cli/.git
+1cf51df github.com/cloudfoundry/bosh-utils/.git
+cd8b52f gopkg.in/yaml.v2/.git
+6a83f95 gopkg.in/zorkian/go-datadog-api.v1/.git

@@ -1,18 +1,19 @@
 package releasedir
 
 import (
-	"io"
-	"os"
-	gopath "path"
-	"sort"
-
 	boshblob "github.com/cloudfoundry/bosh-utils/blobstore"
 	boshcrypto "github.com/cloudfoundry/bosh-utils/crypto"
 	bosherr "github.com/cloudfoundry/bosh-utils/errors"
 	boshfu "github.com/cloudfoundry/bosh-utils/fileutil"
+	boshlog "github.com/cloudfoundry/bosh-utils/logger"
 	boshsys "github.com/cloudfoundry/bosh-utils/system"
 	"gopkg.in/yaml.v2"
+	"io"
+	"os"
+	"path/filepath"
+	"sort"
 
+	"fmt"
 	bicrypto "github.com/cloudfoundry/bosh-cli/crypto"
 )
 
@@ -24,6 +25,9 @@ type FSBlobsDir struct {
 	blobstore        boshblob.DigestBlobstore
 	digestCalculator bicrypto.DigestCalculator
 	fs               boshsys.FileSystem
+
+	logTag string
+	logger boshlog.Logger
 }
 
 /*
@@ -49,20 +53,24 @@ func NewFSBlobsDir(
 	blobstore boshblob.DigestBlobstore,
 	digestCalculator bicrypto.DigestCalculator,
 	fs boshsys.FileSystem,
+	logger boshlog.Logger,
 ) FSBlobsDir {
 	return FSBlobsDir{
-		indexPath: gopath.Join(dirPath, "config", "blobs.yml"),
-		dirPath:   gopath.Join(dirPath, "blobs"),
+		indexPath: filepath.Join(dirPath, "config", "blobs.yml"),
+		dirPath:   filepath.Join(dirPath, "blobs"),
 
 		reporter:         reporter,
 		blobstore:        blobstore,
 		digestCalculator: digestCalculator,
 		fs:               fs,
+
+		logTag: "releasedir.FSBlobsDir",
+		logger: logger,
 	}
 }
 
 func (d FSBlobsDir) Init() error {
-	err := d.fs.MkdirAll(gopath.Dir(d.indexPath), os.ModePerm)
+	err := d.fs.MkdirAll(filepath.Dir(d.indexPath), os.ModePerm)
 	if err != nil {
 		return bosherr.WrapErrorf(err, "Creating blobs/")
 	}
@@ -104,10 +112,14 @@ func (d FSBlobsDir) Blobs() ([]Blob, error) {
 	return blobs, nil
 }
 
-func (d FSBlobsDir) DownloadBlobs(numOfParallelWorkers int) error {
+func (d FSBlobsDir) SyncBlobs(numOfParallelWorkers int) error {
 	blobs, err := d.Blobs()
 	if err != nil {
 		return err
+	}
+
+	if err := d.removeUnknownBlobs(blobs); err != nil {
+		return bosherr.WrapErrorf(err, "Syncing blobs")
 	}
 
 	resultsCh := make(chan error, len(blobs))
@@ -135,6 +147,41 @@ func (d FSBlobsDir) DownloadBlobs(numOfParallelWorkers int) error {
 
 	if errs != nil {
 		return bosherr.NewMultiError(errs...)
+	}
+
+	return nil
+}
+
+func (d FSBlobsDir) removeUnknownBlobs(blobs []Blob) error {
+	files, err := d.fs.RecursiveGlob(filepath.Join(d.dirPath, "**/*"))
+	if err != nil {
+		return bosherr.WrapErrorf(err, "Checking for unknown blobs")
+	}
+
+	for _, file := range files {
+		fileInfo, err := d.fs.Stat(file)
+		if err != nil {
+			return bosherr.WrapErrorf(err, "Determining existing blobs")
+		}
+		if fileInfo.IsDir() {
+			continue
+		}
+
+		found := false
+
+		for _, blob := range blobs {
+			if file == filepath.Join(d.dirPath, blob.Path) {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			d.logger.Info(d.logTag, fmt.Sprintf("Deleting blob at '%s' that is not in the blob index.", file))
+			if err := d.fs.RemoveAll(file); err != nil {
+				return bosherr.WrapErrorf(err, "Removing unknown blob")
+			}
+		}
 	}
 
 	return nil
@@ -197,7 +244,7 @@ func (d FSBlobsDir) TrackBlob(path string, src io.ReadCloser) (Blob, error) {
 
 	blobs[idx] = Blob{Path: path, Size: fileInfo.Size(), SHA1: sha1}
 
-	err = d.moveBlobLocally(tempFile.Name(), gopath.Join(d.dirPath, path))
+	err = d.moveBlobLocally(tempFile.Name(), filepath.Join(d.dirPath, path))
 	if err != nil {
 		return Blob{}, err
 	}
@@ -211,7 +258,7 @@ func (d FSBlobsDir) UntrackBlob(path string) error {
 		return err
 	}
 
-	err = d.fs.RemoveAll(gopath.Join(d.dirPath, path))
+	err = d.fs.RemoveAll(filepath.Join(d.dirPath, path))
 	if err != nil {
 		return bosherr.WrapErrorf(err, "Removing blob from blobs/")
 	}
@@ -253,21 +300,33 @@ func (d FSBlobsDir) UploadBlobs() error {
 	return nil
 }
 
-func (d FSBlobsDir) downloadBlob(blob Blob) error {
-	dstPath := gopath.Join(d.dirPath, blob.Path)
-
+func (d FSBlobsDir) checkBlobExistence(dstPath string, digest boshcrypto.MultipleDigest) bool {
 	if d.fs.FileExists(dstPath) {
+		if err := digest.VerifyFilePath(dstPath, d.fs); err != nil {
+			d.logger.Error(d.logTag, fmt.Sprintf("Incorrect SHA sum for blob at '%s'. Re-downloading from blobstore.", dstPath))
+			return false
+		}
+
+		return true
+	}
+
+	return false
+}
+
+func (d FSBlobsDir) downloadBlob(blob Blob) error {
+	dstPath := filepath.Join(d.dirPath, blob.Path)
+
+	digest, err := boshcrypto.ParseMultipleDigest(blob.SHA1)
+	if err != nil {
+		return bosherr.WrapErrorf(
+			err, "Generating multi digest for blob '%s' for path '%s' with digest string '%s'", blob.BlobstoreID, blob.Path, blob.SHA1)
+	}
+
+	if d.checkBlobExistence(dstPath, digest) {
 		return nil
 	}
 
 	d.reporter.BlobDownloadStarted(blob.Path, blob.Size, blob.BlobstoreID, blob.SHA1)
-
-	digest, err := boshcrypto.ParseMultipleDigest(blob.SHA1)
-	if err != nil {
-		d.reporter.BlobDownloadFinished(blob.Path, blob.BlobstoreID, err)
-		return bosherr.WrapErrorf(
-			err, "Generating multi digest for blob '%s' for path '%s' with digest string '%s'", blob.BlobstoreID, blob.Path, blob.SHA1)
-	}
 
 	path, err := d.blobstore.Get(blob.BlobstoreID, digest)
 	if err != nil {
@@ -286,7 +345,7 @@ func (d FSBlobsDir) uploadBlob(blob Blob) (string, error) {
 
 	d.reporter.BlobUploadStarted(blob.Path, blob.Size, blob.SHA1)
 
-	srcPath := gopath.Join(d.dirPath, blob.Path)
+	srcPath := filepath.Join(d.dirPath, blob.Path)
 
 	blobID, _, err := d.blobstore.Create(srcPath)
 	if err != nil {
@@ -300,7 +359,7 @@ func (d FSBlobsDir) uploadBlob(blob Blob) (string, error) {
 }
 
 func (d FSBlobsDir) moveBlobLocally(srcPath, dstPath string) error {
-	err := d.fs.MkdirAll(gopath.Dir(dstPath), os.ModePerm)
+	err := d.fs.MkdirAll(filepath.Dir(dstPath), os.ModePerm)
 	if err != nil {
 		return bosherr.WrapErrorf(err, "Creating subdirs in blobs/")
 	}

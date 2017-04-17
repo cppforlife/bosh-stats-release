@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	. "github.com/cloudfoundry/bosh-cli/installation/tarball"
 	fakebiui "github.com/cloudfoundry/bosh-cli/ui/fakes"
@@ -27,7 +28,7 @@ var _ = Describe("Provider", func() {
 	BeforeEach(func() {
 		fs = fakesys.NewFakeFileSystem()
 		logger := boshlog.NewLogger(boshlog.LevelNone)
-		cache = NewCache("/fake-base-path", fs, logger)
+		cache = NewCache(filepath.Join("/", "fake-base-path"), fs, logger)
 		httpClient = fakebihttpclient.NewFakeHTTPClient()
 		provider = NewProvider(cache, fs, httpClient, 3, 0, logger)
 		fakeStage = fakebiui.NewFakeStage()
@@ -62,7 +63,7 @@ var _ = Describe("Provider", func() {
 				It("returns cached tarball path", func() {
 					path, err := provider.Get(source, fakeStage)
 					Expect(err).ToNot(HaveOccurred())
-					Expect(path).To(Equal("/fake-base-path/9db1fb7c47637e8709e944a232e1aa98ce6fec26-da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+					Expect(path).To(Equal(filepath.Join("/", "fake-base-path", "9db1fb7c47637e8709e944a232e1aa98ce6fec26-da39a3ee5e6b4b0d3255bfef95601890afd80709")))
 				})
 
 				It("skips downloading stage", func() {
@@ -100,7 +101,7 @@ var _ = Describe("Provider", func() {
 					It("downloads tarball from given URL and returns saved cache tarball path", func() {
 						path, err := provider.Get(source, fakeStage)
 						Expect(err).ToNot(HaveOccurred())
-						Expect(path).To(Equal("/fake-base-path/9db1fb7c47637e8709e944a232e1aa98ce6fec26-da39a3ee5e6b4b0d3255bfef95601890afd80709"))
+						Expect(path).To(Equal(filepath.Join("/", "fake-base-path", "9db1fb7c47637e8709e944a232e1aa98ce6fec26-da39a3ee5e6b4b0d3255bfef95601890afd80709")))
 
 						Expect(httpClient.GetInputs).To(HaveLen(1))
 						Expect(httpClient.GetInputs[0].Endpoint).To(Equal("http://fake-url"))
@@ -117,13 +118,13 @@ var _ = Describe("Provider", func() {
 
 					Context("when sha1 does not match", func() {
 						BeforeEach(func() {
-							source = newFakeSource("http://fake-url", "expected-sha-1", "fake-description")
+							source = newFakeSource("http://fake-url", "expectedsha1", "fake-description")
 						})
 
 						It("returns an error", func() {
 							_, err := provider.Get(source, fakeStage)
 							Expect(err).To(HaveOccurred())
-							Expect(err.Error()).To(ContainSubstring("Failed to download from 'http://fake-url': Verifying digest for downloaded file: Expected stream to have digest 'expected-sha-1' but was 'da39a3ee5e6b4b0d3255bfef95601890afd80709'"))
+							Expect(err.Error()).To(ContainSubstring("Failed to download from 'http://fake-url': Verifying digest for downloaded file: Expected stream to have digest 'expectedsha1' but was 'da39a3ee5e6b4b0d3255bfef95601890afd80709'"))
 						})
 
 						It("retries downloading up to 3 times", func() {

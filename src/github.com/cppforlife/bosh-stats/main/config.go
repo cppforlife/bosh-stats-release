@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Director director.Config
-	Datadog reporter.DatadogConfig
+	Datadog  reporter.DatadogConfig
 }
 
 func NewConfigFromPath(path string, fs boshsys.FileSystem) (Config, error) {

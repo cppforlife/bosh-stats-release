@@ -51,6 +51,8 @@ jobs:
         - get: bosh-cli
           passed: [test-unit,test-integration]
           trigger: true
+        - get: bosh-agent
+          trigger: true
       - task: build-linux
         file: bosh-cli/ci/tasks/build-linux.yml
         params:
@@ -60,7 +62,7 @@ jobs:
         - task: test-group-1
           privileged: true
           input_mapping:
-            gocli-release-bucket-linux: compiled-linux
+            bosh-cli: compiled-linux
           file: bosh-src/ci/tasks/test-integration-gocli.yml
           tags: ["bosh-integration-1"]
           params:
@@ -71,7 +73,7 @@ jobs:
         - task: test-group-2
           privileged: true
           input_mapping:
-            gocli-release-bucket-linux: compiled-linux
+            bosh-cli: compiled-linux
           file: bosh-src/ci/tasks/test-integration-gocli.yml
           tags: ["bosh-integration-2"]
           params:
@@ -82,7 +84,7 @@ jobs:
         - task: test-group-3
           privileged: true
           input_mapping:
-            gocli-release-bucket-linux: compiled-linux
+            bosh-cli: compiled-linux
           file: bosh-src/ci/tasks/test-integration-gocli.yml
           tags: ["bosh-integration-3"]
           params:
@@ -178,6 +180,43 @@ jobs:
         params:
           repository: update-brew-formula-output/homebrew-tap
 
+  - name: build-alpha
+    public: true
+    plan:
+      - aggregate:
+        - get: bosh-cli
+          passed:
+           - test-acceptance
+           - integration-2.3-postgres-gocli
+          trigger: true
+        - get: alpha-version-semver
+          params: {bump: patch}
+      - {put: alpha-version-semver, params: {file: alpha-version-semver/number}}
+      - aggregate:
+        - task: build-linux
+          input_mapping: {version-semver: alpha-version-semver}
+          file: bosh-cli/ci/tasks/build-linux.yml
+          params:
+            SKIP_BOSH_IO: true
+            FILENAME_PREFIX: "alpha-"
+        - task: build-darwin
+          input_mapping: {version-semver: alpha-version-semver}
+          file: bosh-cli/ci/tasks/build-darwin.yml
+          params:
+            SKIP_BOSH_IO: true
+            FILENAME_PREFIX: "alpha-"
+        - task: build-windows
+          input_mapping: {version-semver: alpha-version-semver}
+          file: bosh-cli/ci/tasks/build-windows.yml
+          params:
+            SKIP_BOSH_IO: true
+            FILENAME_PREFIX: "alpha-"
+
+      - aggregate:
+        - {put: alpha-release-bucket-linux, params: {file: compiled-linux/alpha-bosh-cli-*-linux-amd64}}
+        - {put: alpha-release-bucket-darwin, params: {file: compiled-darwin/alpha-bosh-cli-*-darwin-amd64}}
+        - {put: alpha-release-bucket-windows, params: {file: compiled-windows/alpha-bosh-cli-*-windows-amd64.exe}}
+
   - name: bump-minor
     public: true
     plan:
@@ -197,7 +236,13 @@ resources:
     type: git
     source:
       uri: https://github.com/cloudfoundry/bosh.git
-      branch: develop
+      branch: master
+
+  - name: bosh-agent
+    type: git
+    source:
+      uri: https://github.com/cloudfoundry/bosh-agent.git
+      branch: master
 
   - name: bosh-cli
     type: git
@@ -244,6 +289,33 @@ resources:
       access_key_id: {{aws_s3_release_bucket_access_key}}
       secret_access_key: {{aws_s3_release_bucket_secret_key}}
 
+  - name: alpha-release-bucket-linux
+    type: s3
+    source:
+      regexp: alpha-bosh-cli-(.*)-linux-amd64
+      bucket: {{aws_s3_alpha_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: alpha-release-bucket-darwin
+    type: s3
+    source:
+      regexp: alpha-bosh-cli-(.*)-darwin-amd64
+      bucket: {{aws_s3_alpha_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: alpha-release-bucket-windows
+    type: s3
+    source:
+      regexp: alpha-bosh-cli-(.*)-windows-amd64.exe
+      bucket: {{aws_s3_alpha_release_bucket}}
+      region_name: {{aws_s3_release_bucket_region}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
   - name: slack-alert
     type: slack-notification
     source:
@@ -255,6 +327,15 @@ resources:
       initial_version: 0.0.1
       key: cli-current-version
       bucket: {{aws_s3_release_bucket}}
+      access_key_id: {{aws_s3_release_bucket_access_key}}
+      secret_access_key: {{aws_s3_release_bucket_secret_key}}
+
+  - name: alpha-version-semver
+    type: semver
+    source:
+      initial_version: 0.0.1
+      key: cli-alpha-current-version
+      bucket: {{aws_s3_alpha_release_bucket}}
       access_key_id: {{aws_s3_release_bucket_access_key}}
       secret_access_key: {{aws_s3_release_bucket_secret_key}}
 

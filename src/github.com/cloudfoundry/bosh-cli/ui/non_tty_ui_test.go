@@ -69,9 +69,8 @@ var _ = Describe("NonTTYUI", func() {
 	Describe("PrintTable", func() {
 		It("delegates to the parent UI with re-configured table", func() {
 			ui.PrintTable(Table{
-				Title:      "title",
-				Header:     []string{"header1"},
-				HeaderVals: []Value{ValueString{"header1"}},
+				Title:  "title",
+				Header: []Header{NewHeader("header1")},
 
 				Notes:   []string{"note1"},
 				Content: "things",
@@ -93,9 +92,11 @@ var _ = Describe("NonTTYUI", func() {
 			})
 
 			Expect(parentUI.Table).To(Equal(Table{
-				Title:      "",
-				Header:     nil,
-				HeaderVals: nil,
+				Title: "",
+				Header: []Header{
+					{Key: "header1", Title: "header1", Hidden: false},
+				},
+				HeaderFormatFunc: nil,
 
 				Notes:   nil,
 				Content: "",
@@ -112,6 +113,7 @@ var _ = Describe("NonTTYUI", func() {
 				Rows: [][]Value{{ValueString{"row1"}}},
 
 				FillFirstColumn: true,
+				DataOnly:        true,
 				BackgroundStr:   "-",
 				BorderStr:       "\t",
 			}))

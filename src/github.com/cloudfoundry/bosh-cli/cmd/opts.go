@@ -29,10 +29,11 @@ type BoshOpts struct {
 	DeploymentOpt string `long:"deployment" short:"d" description:"Deployment name" env:"BOSH_DEPLOYMENT"`
 
 	// Output formatting
-	JSONOpt           bool `long:"json"                      description:"Output as JSON"`
-	TTYOpt            bool `long:"tty"                       description:"Force TTY-like output"`
-	NoColorOpt        bool `long:"no-color"                  description:"Toggle colorized output"`
-	NonInteractiveOpt bool `long:"non-interactive" short:"n" description:"Don't ask for user input"`
+	ColumnOpt         []ColumnOpt `long:"column"                    description:"Filter to show only given column(s)"`
+	JSONOpt           bool        `long:"json"                      description:"Output as JSON"`
+	TTYOpt            bool        `long:"tty"                       description:"Force TTY-like output"`
+	NoColorOpt        bool        `long:"no-color"                  description:"Toggle colorized output"`
+	NonInteractiveOpt bool        `long:"non-interactive" short:"n" description:"Don't ask for user input"`
 
 	Help HelpOpts `command:"help" description:"Show this help message"`
 
@@ -86,11 +87,13 @@ type BoshOpts struct {
 
 	// Events
 	Events EventsOpts `command:"events" description:"List events"`
+	Event  EventOpts  `command:"event" description:"Show event details"`
 
 	// Stemcells
 	Stemcells      StemcellsOpts      `command:"stemcells"       alias:"ss" alias:"stems" description:"List stemcells"`
 	UploadStemcell UploadStemcellOpts `command:"upload-stemcell" alias:"us"               description:"Upload stemcell"`
 	DeleteStemcell DeleteStemcellOpts `command:"delete-stemcell" alias:"dels"             description:"Delete stemcell"`
+	RepackStemcell RepackStemcellOpts `command:"repack-stemcell"                          description:"Repack stemcell"`
 
 	// Releases
 	Releases       ReleasesOpts       `command:"releases"        alias:"rs" alias:"rels" description:"List releases"`
@@ -141,6 +144,8 @@ type BoshOpts struct {
 	GenerateJob     GenerateJobOpts     `command:"generate-job"                  description:"Generate job"`
 	GeneratePackage GeneratePackageOpts `command:"generate-package"              description:"Generate package"`
 	CreateRelease   CreateReleaseOpts   `command:"create-release"   alias:"cr"   description:"Create release"`
+	// Hidden
+	Sha2ifyRelease  Sha2ifyReleaseOpts  `command:"sha2ify-release" hidden:"true" description:"Convert a sha128 release tarball to sha256"`
 	FinalizeRelease FinalizeReleaseOpts `command:"finalize-release" alias:"finr" description:"Create final release from dev release tarball"`
 
 	// Blob management
@@ -269,7 +274,7 @@ type BackUpOpts struct {
 }
 
 type BackUpArgs struct {
-	Path string `positional-arg-name:"PATH"`
+	Path FileArg `positional-arg-name:"PATH"`
 }
 
 type AttachDiskArgs struct {
@@ -399,6 +404,16 @@ type EventsOpts struct {
 	cmd
 }
 
+type EventOpts struct {
+	Args EventArgs `positional-args:"true" required:"true"`
+
+	cmd
+}
+
+type EventArgs struct {
+	ID string `positional-arg-name:"ID"`
+}
+
 // Stemcells
 type StemcellsOpts struct {
 	cmd
@@ -431,6 +446,20 @@ type DeleteStemcellOpts struct {
 
 type DeleteStemcellArgs struct {
 	Slug boshdir.StemcellSlug `positional-arg-name:"NAME/VERSION"`
+}
+
+type RepackStemcellOpts struct {
+	Args            RepackStemcellArgs `positional-args:"true" required:"true"`
+	Name            string             `long:"name" description:"Repacked stemcell name"`
+	CloudProperties string             `long:"cloud-properties" description:"Repacked stemcell cloud properties"`
+	Version         string             `long:"version" description:"Repacked stemcell version"`
+
+	cmd
+}
+
+type RepackStemcellArgs struct {
+	PathToStemcell string  `positional-arg-name:"PATH-TO-STEMCELL" description:"Path to stemcell"`
+	PathToResult   FileArg `positional-arg-name:"PATH-TO-RESULT" description:"Path to repacked stemcell"`
 }
 
 // Releases
@@ -766,6 +795,17 @@ type GeneratePackageArgs struct {
 	Name string `positional-arg-name:"NAME"`
 }
 
+type Sha2ifyReleaseOpts struct {
+	Args Sha2ifyReleaseArgs `positional-args:"true"`
+
+	cmd
+}
+
+type Sha2ifyReleaseArgs struct {
+	Path        string  `positional-arg-name:"PATH"`
+	Destination FileArg `positional-arg-name:"DESTINATION"`
+}
+
 type CreateReleaseOpts struct {
 	Args CreateReleaseArgs `positional-args:"true"`
 
@@ -775,9 +815,9 @@ type CreateReleaseOpts struct {
 	Version          VersionArg `long:"version"            description:"Custom release version (e.g.: 1.0.0, 1.0-beta.2+dev.10)"`
 	TimestampVersion bool       `long:"timestamp-version"  description:"Create release with the timestamp as the dev version (e.g.: 1+dev.TIMESTAMP)"`
 
-	Final   bool   `long:"final"   description:"Make it a final release"`
-	Tarball string `long:"tarball" description:"Create release tarball at path (e.g. /tmp/release.tgz)"`
-	Force   bool   `long:"force"   description:"Ignore Git dirty state check"`
+	Final   bool    `long:"final"   description:"Make it a final release"`
+	Tarball FileArg `long:"tarball" description:"Create release tarball at path (e.g. /tmp/release.tgz)"`
+	Force   bool    `long:"force"   description:"Ignore Git dirty state check"`
 
 	cmd
 }
