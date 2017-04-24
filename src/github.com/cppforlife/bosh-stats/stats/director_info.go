@@ -20,24 +20,17 @@ func (f DirectorInfo) Stats() ([]Stat, error) {
 
 	var stats []Stat
 
-	stats = append(stats, Stat{
-		name:  "director.version",
-		value: info.Version,
-	})
+	tags := make(map[string]string)
+	tags["name"] = info.Name // todo sensitive info
+	tags["uuid"] = info.UUID
+	tags["version"] = info.Version
+	tags["auth.type"] = info.Auth.Type
+	tags["auth.cpi"] = info.CPI
 
 	stats = append(stats, Stat{
-		name:  "director.uuid",
-		value: info.UUID,
-	})
-
-	stats = append(stats, Stat{
-		name:  "director.auth.type",
-		value: info.Auth.Type,
-	})
-
-	stats = append(stats, Stat{
-		name:  "director.cpi",
-		value: info.CPI,
+		name:  "director.info",
+		value: "1",
+		tags:  tags,
 	})
 
 	// todo features

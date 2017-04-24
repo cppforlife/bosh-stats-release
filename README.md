@@ -49,3 +49,9 @@ Available destinations:
 - opt-in to metrics
 - send all stats to stats.bosh.io (configurable)
   - for now forward to some http endpoint
+
+## Test
+
+```
+./src/github.com/cppforlife/bosh-stats/bin/test
+```

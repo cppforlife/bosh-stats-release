@@ -40,3 +40,6 @@ properties:
   datadog.api_key:
     description: "Datadog API key"
     default: ""
+
+  events_store_path:
+    default: "/var/vcap/store/bosh_stats/last_event_id"

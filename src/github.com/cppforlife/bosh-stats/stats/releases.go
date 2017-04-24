@@ -21,25 +21,44 @@ func (f Releases) Stats() ([]Stat, error) {
 	}
 
 	var stats []Stat
+	directorTags := f.directorTags()
 
 	stats = append(stats, Stat{
 		name:  "releases.count",
 		value: strconv.Itoa(len(releases)),
+		tags:  directorTags,
 	})
 
 	for _, rel := range releases {
+		tags := map[string]string{
+			"name":    rel.Name(),
+			"version": rel.Version().String(),
+		}
+
 		stat := Stat{
 			name:  "release",
-			value: "true",
-			tags: map[string]string{
-				"name":    rel.Name(),
-				"version": rel.Version().String(),
-				// todo used?
-			},
+			value: "1",
+			tags:  merge(directorTags, tags),
+			// todo used?
 		}
 
 		stats = append(stats, stat)
 	}
 
 	return stats, nil
+}
+
+func (f Releases) directorTags() map[string]string {
+	info, err := f.director.Info()
+	if err != nil {
+		// TODO: handle/return error
+		return nil
+	}
+
+	tags := make(map[string]string)
+
+	tags["director.name"] = info.Name
+	tags["director.uuid"] = info.UUID
+
+	return tags
 }

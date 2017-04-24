@@ -2,13 +2,14 @@
 
 RUN_DIR=/var/vcap/sys/run/bosh_stats
 LOG_DIR=/var/vcap/sys/log/bosh_stats
+STORE_DIR=$(dirname '<%= p("events_store_path") %>')
 PIDFILE=$RUN_DIR/pid
 
 case $1 in
 
   start)
-    mkdir -p $RUN_DIR $LOG_DIR
-    chown -R vcap:vcap $RUN_DIR $LOG_DIR
+    mkdir -p $RUN_DIR $LOG_DIR $STORE_DIR
+    chown -R vcap:vcap $RUN_DIR $LOG_DIR $STORE_DIR
 
     <% if_p('env.http_proxy') do |http_proxy| %>
     export HTTP_PROXY="<%= http_proxy %>"

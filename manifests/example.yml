@@ -26,6 +26,7 @@ instance_groups:
         client_secret: ((director_client_secret))
   vm_type: default
   stemcell: default
+  persistent_disk: 1000
   networks:
   - name: default
 

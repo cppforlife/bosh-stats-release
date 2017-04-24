@@ -11,8 +11,13 @@ import (
 )
 
 type Config struct {
-	Director director.Config
-	Datadog  reporter.DatadogConfig
+	Director    director.Config
+	Datadog     reporter.DatadogConfig
+	EventsStore EventsStore
+}
+
+type EventsStore struct {
+	Path string
 }
 
 func NewConfigFromPath(path string, fs boshsys.FileSystem) (Config, error) {
@@ -40,6 +45,15 @@ func (c Config) Validate() error {
 	err := c.Director.Validate()
 	if err != nil {
 		return bosherr.WrapError(err, "Validating 'Director' config")
+	}
+
+	err = c.Datadog.Validate()
+	if err != nil {
+		return bosherr.WrapError(err, "Validating 'Datadog' config")
+	}
+
+	if len(c.EventsStore.Path) == 0 {
+		return bosherr.Error("Missing 'EventsStore.Path'")
 	}
 
 	return nil

@@ -43,7 +43,7 @@ func main() {
 		ensureNoErr(logger, "Failed building director", err)
 	}
 
-	eventsFactory := stats.NewEventsFactory("/tmp/events", fs)
+	eventsFactory := stats.NewEventsFactory(config.EventsStore.Path, fs)
 	src := stats.NewDirector(dir, eventsFactory, logger)
 
 	loggerReporter := reporter.NewLogger(logger)

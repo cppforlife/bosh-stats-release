@@ -20,11 +20,13 @@ func (f Deployments) Stats() ([]Stat, error) {
 		return nil, err
 	}
 
-	var stats []Stat
+	stats := []Stat{}
+	directorTags := f.directorTags()
 
 	stats = append(stats, Stat{
 		name:  "deployments.count",
 		value: strconv.Itoa(len(deps)),
+		tags:  directorTags,
 	})
 
 	var allInstances []boshdir.Instance
@@ -35,9 +37,13 @@ func (f Deployments) Stats() ([]Stat, error) {
 			return stats, nil
 		}
 
+		tags := directorTags
+		tags["deployment.name"] = dep.Name()
+
 		stats = append(stats, Stat{
 			name:  "deployment.instances.count",
 			value: strconv.Itoa(len(insts)),
+			tags:  tags,
 		})
 
 		allInstances = append(allInstances, insts...)
@@ -46,7 +52,23 @@ func (f Deployments) Stats() ([]Stat, error) {
 	stats = append(stats, Stat{
 		name:  "instances.count",
 		value: strconv.Itoa(len(allInstances)),
+		tags:  directorTags,
 	})
 
 	return stats, nil
+}
+
+func (f Deployments) directorTags() map[string]string {
+	info, err := f.director.Info()
+	if err != nil {
+		// TODO: handle/return error
+		return nil
+	}
+
+	tags := make(map[string]string)
+
+	tags["director.name"] = info.Name
+	tags["director.uuid"] = info.UUID
+
+	return tags
 }
